@@ -126,30 +126,71 @@ def list_projects(_args):
 def validate_projects(_args):
     files = sorted(PROJECTS.glob("**/project.json"))
     errors = []
+    checked = 0
+    required_files = [
+        "project.json", "README.md",
+        "specifications/PROJECT_SPEC.md",
+        "tasks/TASKS.md", "reports/QA_REPORT.md"
+    ]
+    required_dirs = ["specifications", "tasks", "reports", "assets"]
+    valid_statuses = {"planning", "development", "review", "completed", "paused"}
 
     for file in files:
+        rel = file.relative_to(ROOT)
+        folder = file.parent
         try:
             data = json.loads(file.read_text(encoding="utf-8"))
-
-            required = ["projectName", "slug", "projectType", "status"]
-            for key in required:
-                if not data.get(key):
-                    errors.append(f"{file}: missing {key}")
-
-            if data.get("projectType") not in PROJECT_TYPES:
-                errors.append(f"{file}: unsupported projectType")
-
-            if not isinstance(data.get("dependencies", []), list):
-                errors.append(f"{file}: dependencies must be a list")
-
-            print(f"[OK] {file.relative_to(ROOT)}")
-
         except Exception as error:
-            errors.append(f"{file}: {error}")
+            errors.append(f"{rel}: invalid JSON: {error}")
+            continue
 
-    print(f"\nProjects checked: {len(files)}")
+        problems = []
+        for key in ("projectName", "slug", "projectType", "status",
+                    "dependencies", "verification"):
+            if key not in data or data[key] is None or data[key] == "":
+                problems.append(f"missing or empty field: {key}")
+
+        if data.get("projectType") not in PROJECT_TYPES:
+            problems.append("unsupported projectType")
+        if data.get("slug") != folder.name:
+            problems.append("slug does not match directory name")
+        if data.get("projectType") != folder.parent.name:
+            problems.append("projectType does not match directory")
+        if data.get("status") not in valid_statuses:
+            problems.append("invalid status")
+        if not isinstance(data.get("dependencies"), list):
+            problems.append("dependencies must be a list")
+
+        version = data.get("targetMinecraftVersion")
+        if version is not None and (
+            not isinstance(version, str) or not version.strip()
+        ):
+            problems.append("targetMinecraftVersion must be null or a non-empty string")
+
+        verification = data.get("verification")
+        if not isinstance(verification, dict):
+            problems.append("verification must be an object")
+        else:
+            for key in ("staticInspection", "build", "runtimeTest"):
+                if key not in verification or not isinstance(verification[key], bool):
+                    problems.append(f"verification.{key} must be a boolean")
+
+        for name in required_files:
+            if not (folder / name).is_file():
+                problems.append(f"missing required file: {name}")
+        for name in required_dirs:
+            if not (folder / name).is_dir():
+                problems.append(f"missing required directory: {name}")
+
+        checked += 1
+        if problems:
+            errors.extend(f"{rel}: {problem}" for problem in problems)
+            print(f"[ERROR] {rel}")
+        else:
+            print(f"[OK] {rel}")
+
+    print(f"\\nProjects checked: {checked}")
     print(f"Errors: {len(errors)}")
-
     for error in errors:
         print(f"[ERROR] {error}")
 
