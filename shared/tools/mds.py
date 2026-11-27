@@ -385,6 +385,7 @@ def run_qa(args):
         [sys.executable, "-m", "unittest", "discover", "-s", "tests", "-v"],
         [sys.executable, "shared/tools/mds.py", "validate"],
         [sys.executable, "shared/tools/validate_project.py"],
+        [sys.executable, "shared/tools/validate_datapack.py"],
     ]
 
     for command in commands:

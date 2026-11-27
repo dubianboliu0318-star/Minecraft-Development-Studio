@@ -125,5 +125,29 @@ class MDSCommandTests(unittest.TestCase):
         self.assertIn("[TODO]", result.stdout)
 
 
+
+    def test_datapack_validator_rejects_invalid_metadata(self):
+        (self.project / "pack.mcmeta").write_text(
+            "{ invalid json", encoding="utf-8"
+        )
+        (self.project / "data").mkdir(exist_ok=True)
+        result = subprocess.run(
+            [sys.executable, str(ROOT / "shared/tools/validate_datapack.py"),
+             "--slug", self.slug],
+            cwd=ROOT, capture_output=True, text=True
+        )
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("Invalid pack.mcmeta", result.stdout)
+
+    def test_datapack_validator_marks_empty_scaffold_pending(self):
+        result = subprocess.run(
+            [sys.executable, str(ROOT / "shared/tools/validate_datapack.py"),
+             "--slug", self.slug],
+            cwd=ROOT, capture_output=True, text=True
+        )
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn("[PENDING]", result.stdout)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
