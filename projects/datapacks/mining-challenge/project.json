@@ -1,0 +1,17 @@
+{
+  "projectName": "MiningChallenge",
+  "slug": "mining-challenge",
+  "projectType": "datapacks",
+  "targetMinecraftVersion": "1.21.11",
+  "modLoader": null,
+  "javaVersion": null,
+  "buildSystem": null,
+  "dependencies": [],
+  "status": "planning",
+  "createdAt": "2026-11-27T08:31:30.051638+00:00",
+  "verification": {
+    "staticInspection": false,
+    "build": false,
+    "runtimeTest": false
+  }
+}
