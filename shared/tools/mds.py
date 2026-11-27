@@ -381,7 +381,8 @@ def write_project_qa_report(file):
 def run_qa(args):
     commands = [
         [sys.executable, "-m", "py_compile",
-         "shared/tools/mds.py", "tests/test_mds.py"],
+         *[str(f.relative_to(ROOT)) for f in sorted((ROOT / "shared/tools").glob("*.py"))],
+         "tests/test_mds.py"],
         [sys.executable, "-m", "unittest", "discover", "-s", "tests", "-v"],
         [sys.executable, "shared/tools/mds.py", "validate"],
         [sys.executable, "shared/tools/validate_project.py"],

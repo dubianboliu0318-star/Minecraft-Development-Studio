@@ -33,7 +33,7 @@ def package_project(slug):
 
     files = sorted(
         p for p in folder.rglob("*")
-        if p.is_file() and (p == metadata or data_dir in p.parents)
+        if p.is_file() and (p == metadata or p == folder / "pack.png" or data_dir in p.parents)
     )
     if not any(data_dir in p.parents for p in files):
         raise SystemExit("Packaging blocked: data/ contains no files.")
