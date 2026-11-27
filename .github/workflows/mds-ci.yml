@@ -16,5 +16,3 @@ jobs:
           python-version: "3.12"
       - name: Run MDS QA
         run: python shared/tools/mds.py qa
-      - name: Validate JSON files
-        run: python shared/tools/validate_project.py

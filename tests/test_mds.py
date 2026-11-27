@@ -58,6 +58,7 @@ class MDSCommandTests(unittest.TestCase):
         result = self.run_cmd("--help")
         self.assertEqual(result.returncode, 0)
         self.assertIn("qa", result.stdout)
+        self.assertIn("doctor", result.stdout)
 
     def test_list(self):
         self.assertEqual(self.run_cmd("list").returncode, 0)

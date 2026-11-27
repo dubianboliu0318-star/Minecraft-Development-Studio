@@ -21,3 +21,16 @@ Minecraft development workspace.
 
 ## Tests
 - tests: Automated tests
+
+## Commands
+
+Run all automated checks and show project status:
+`python shared/tools/mds.py doctor`
+
+Show the next development stage:
+`python shared/tools/mds.py workflow --slug <project-slug>`
+
+Generate a project QA report:
+`python shared/tools/mds.py qa --slug <project-slug>`
+
+Framework QA does not mark Minecraft build or in-game verification complete.

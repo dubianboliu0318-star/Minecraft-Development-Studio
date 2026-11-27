@@ -384,6 +384,7 @@ def run_qa(args):
          "shared/tools/mds.py", "tests/test_mds.py"],
         [sys.executable, "-m", "unittest", "discover", "-s", "tests", "-v"],
         [sys.executable, "shared/tools/mds.py", "validate"],
+        [sys.executable, "shared/tools/validate_project.py"],
     ]
 
     for command in commands:
@@ -402,6 +403,58 @@ def run_qa(args):
         print(f"Project QA report updated: {file.parent.relative_to(ROOT) / 'reports/QA_REPORT.md'}")
 
     print("\nQA PASSED")
+    return 0
+
+
+
+def run_doctor(args):
+    result = run_qa(argparse.Namespace(slug=None))
+    if result != 0:
+        print("\nDOCTOR RESULT: FAILED")
+        return result
+
+    files = sorted(PROJECTS.glob("**/project.json"))
+    print("\n=== MDS PROJECT DASHBOARD ===")
+    if not files:
+        print("No projects registered.")
+        return 0
+
+    matched = False
+    for file in files:
+        try:
+            data = json.loads(file.read_text(encoding="utf-8"))
+        except Exception as error:
+            print(f"[INVALID] {file.parent.name}: {error}")
+            continue
+
+        if args.slug and data.get("slug") != args.slug:
+            continue
+
+        matched = True
+        checks = data.get("verification", {})
+        done = sum(
+            checks.get(key) is True
+            for key in ("staticInspection", "build", "runtimeTest")
+        )
+        print(
+            f"{data.get('slug', file.parent.name)} | "
+            f"{data.get('status', 'unknown')} | "
+            f"{done}/3 verification stages"
+        )
+        for key, label in (
+            ("staticInspection", "Static inspection"),
+            ("build", "Build"),
+            ("runtimeTest", "Runtime test"),
+        ):
+            if checks.get(key) is not True:
+                print(f"  [PENDING] {label}")
+
+    if args.slug and not matched:
+        print(f"ERROR: Project not found: {args.slug}")
+        return 1
+
+    print("\nDOCTOR RESULT: HEALTHY (MDS checks passed)")
+    print("Project verification remains separate from framework QA.")
     return 0
 
 
@@ -446,6 +499,10 @@ def main():
     workflow = sub.add_parser("workflow", help="Show the next development stage for a project")
     workflow.add_argument("--slug", required=True)
     workflow.set_defaults(func=show_workflow)
+
+    doctor = sub.add_parser("doctor", help="Run all MDS checks and show project status")
+    doctor.add_argument("--slug", help="Limit dashboard to one project")
+    doctor.set_defaults(func=run_doctor)
 
     args = parser.parse_args()
     return args.func(args)
