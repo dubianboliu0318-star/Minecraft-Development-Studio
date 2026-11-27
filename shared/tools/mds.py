@@ -202,6 +202,71 @@ def validate_projects(_args):
     return 0
 
 
+
+def find_project(slug):
+    matches = list(PROJECTS.glob(f"**/{slug}/project.json"))
+    if len(matches) != 1:
+        return None
+    return matches[0]
+
+
+def show_project(args):
+    file = find_project(args.slug)
+    if file is None:
+        print(f"ERROR: Project not found or ambiguous: {args.slug}")
+        return 1
+    try:
+        data = json.loads(file.read_text(encoding="utf-8"))
+    except Exception as error:
+        print(f"ERROR: Invalid project JSON: {error}")
+        return 1
+    print(json.dumps(data, ensure_ascii=False, indent=2))
+    print(f"Project path: {file.parent.relative_to(ROOT)}")
+    return 0
+
+
+def set_project_status(args):
+    file = find_project(args.slug)
+    if file is None:
+        print(f"ERROR: Project not found or ambiguous: {args.slug}")
+        return 1
+    data = json.loads(file.read_text(encoding="utf-8"))
+    data["status"] = args.status
+    file.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\\n", encoding="utf-8")
+    readme = file.parent / "README.md"
+    if readme.is_file():
+        content = readme.read_text(encoding="utf-8")
+        import re
+        content, count = re.subn(r"(?m)^- Status:.*$", f"- Status: {args.status}", content)
+        if count:
+            readme.write_text(content, encoding="utf-8")
+    print(f"STATUS UPDATED: {args.slug} -> {args.status}")
+    return 0
+
+
+def set_project_version(args):
+    file = find_project(args.slug)
+    if file is None:
+        print(f"ERROR: Project not found or ambiguous: {args.slug}")
+        return 1
+    data = json.loads(file.read_text(encoding="utf-8"))
+    data["targetMinecraftVersion"] = args.version
+    file.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\\n", encoding="utf-8")
+    readme = file.parent / "README.md"
+    if readme.is_file():
+        content = readme.read_text(encoding="utf-8")
+        import re
+        content, count = re.subn(
+            r"(?m)^- Target Minecraft version:.*$",
+            f"- Target Minecraft version: {args.version}",
+            content
+        )
+        if count:
+            readme.write_text(content, encoding="utf-8")
+    print(f"VERSION UPDATED: {args.slug} -> {args.version}")
+    return 0
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="Minecraft Development Studio project manager"
@@ -220,6 +285,21 @@ def main():
 
     validate = sub.add_parser("validate", help="Validate project configs")
     validate.set_defaults(func=validate_projects)
+
+    show = sub.add_parser("show", help="Show project details")
+    show.add_argument("--slug", required=True)
+    show.set_defaults(func=show_project)
+
+    status = sub.add_parser("set-status", help="Change project status")
+    status.add_argument("--slug", required=True)
+    status.add_argument("--status", required=True,
+                        choices=["planning", "development", "review", "completed", "paused"])
+    status.set_defaults(func=set_project_status)
+
+    version = sub.add_parser("set-version", help="Change target Minecraft version")
+    version.add_argument("--slug", required=True)
+    version.add_argument("--version", required=True)
+    version.set_defaults(func=set_project_version)
 
     args = parser.parse_args()
     return args.func(args)
