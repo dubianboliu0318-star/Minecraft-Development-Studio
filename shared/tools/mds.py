@@ -20,6 +20,9 @@ PROJECT_TYPES = [
 ]
 
 
+TEMPLATE_DIRS = {'mods': 'mod', 'datapacks': 'datapack', 'resource-packs': 'resource-pack', 'models': '3d-models', 'textures': 'textures', 'ui': 'ui', 'animations': 'animations'}
+
+
 def create_project(args):
     if not re.fullmatch(r"[a-z0-9][a-z0-9-]*", args.slug):
         print("ERROR: slug must use lowercase letters, numbers and hyphens.")
@@ -71,6 +74,14 @@ def create_project(args):
     for folder in ["specifications", "tasks", "reports", "assets"]:
         (path / folder).mkdir()
     (path / "assets" / ".gitkeep").touch()
+
+    template_name = TEMPLATE_DIRS.get(args.type)
+    if template_name:
+        guide = ROOT / "shared" / "templates" / template_name / "WORKFLOW.md"
+        if guide.is_file():
+            (path / "specifications" / "WORKFLOW_GUIDE.md").write_text(
+                guide.read_text(encoding="utf-8"), encoding="utf-8"
+            )
 
     (path / "specifications" / "PROJECT_SPEC.md").write_text(
         "# Project Specification\n\n"

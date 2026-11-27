@@ -9,6 +9,7 @@ Minecraft development workspace.
 - models: 3D models
 - textures: Textures
 - ui: User interfaces
+- animations: Animation assets
 
 ## Shared
 - templates: Reusable templates

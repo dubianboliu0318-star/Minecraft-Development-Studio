@@ -1,4 +1,6 @@
 import json
+import shutil
+import uuid
 import subprocess
 import sys
 import tempfile
@@ -93,6 +95,25 @@ class MDSCommandTests(unittest.TestCase):
         self.assertEqual(data["targetMinecraftVersion"], "1.21.11")
         self.assertIn("- Target Minecraft version: 1.21.11",
                       (self.project / "README.md").read_text())
+
+
+    def test_create_project_copies_workflow_guide(self):
+        slug = "test-workflow-" + uuid.uuid4().hex[:8]
+        project = DATAPACKS / slug
+        try:
+            result = self.run_cmd(
+                "create", "--name", "Workflow Test",
+                "--slug", slug, "--type", "datapacks",
+                "--target-version", "1.21.11"
+            )
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            guide = project / "specifications/WORKFLOW_GUIDE.md"
+            self.assertTrue(guide.is_file())
+            self.assertIn("exact target version",
+                          guide.read_text(encoding="utf-8"))
+        finally:
+            if project.exists():
+                shutil.rmtree(project)
 
 
 if __name__ == "__main__":
