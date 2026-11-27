@@ -2,6 +2,7 @@ import argparse
 import json
 import re
 import sys
+import subprocess
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -225,19 +226,31 @@ def show_project(args):
     return 0
 
 
+
 def set_project_status(args):
     file = find_project(args.slug)
     if file is None:
         print(f"ERROR: Project not found or ambiguous: {args.slug}")
         return 1
-    data = json.loads(file.read_text(encoding="utf-8"))
-    data["status"] = args.status
-    file.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\\n", encoding="utf-8")
+    try:
+        data = json.loads(file.read_text(encoding="utf-8"))
+        data["status"] = args.status
+        file.write_text(
+            json.dumps(data, ensure_ascii=False, indent=2) + "\n",
+            encoding="utf-8"
+        )
+    except Exception as error:
+        print(f"ERROR: Could not update project: {error}")
+        return 1
+
     readme = file.parent / "README.md"
     if readme.is_file():
         content = readme.read_text(encoding="utf-8")
-        import re
-        content, count = re.subn(r"(?m)^- Status:.*$", f"- Status: {args.status}", content)
+        content, count = re.subn(
+            r"(?m)^- Status:.*$",
+            f"- Status: {args.status}",
+            content
+        )
         if count:
             readme.write_text(content, encoding="utf-8")
     print(f"STATUS UPDATED: {args.slug} -> {args.status}")
@@ -249,13 +262,20 @@ def set_project_version(args):
     if file is None:
         print(f"ERROR: Project not found or ambiguous: {args.slug}")
         return 1
-    data = json.loads(file.read_text(encoding="utf-8"))
-    data["targetMinecraftVersion"] = args.version
-    file.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\\n", encoding="utf-8")
+    try:
+        data = json.loads(file.read_text(encoding="utf-8"))
+        data["targetMinecraftVersion"] = args.version
+        file.write_text(
+            json.dumps(data, ensure_ascii=False, indent=2) + "\n",
+            encoding="utf-8"
+        )
+    except Exception as error:
+        print(f"ERROR: Could not update project: {error}")
+        return 1
+
     readme = file.parent / "README.md"
     if readme.is_file():
         content = readme.read_text(encoding="utf-8")
-        import re
         content, count = re.subn(
             r"(?m)^- Target Minecraft version:.*$",
             f"- Target Minecraft version: {args.version}",
@@ -264,6 +284,23 @@ def set_project_version(args):
         if count:
             readme.write_text(content, encoding="utf-8")
     print(f"VERSION UPDATED: {args.slug} -> {args.version}")
+    return 0
+
+
+def run_qa(_args):
+    commands = [
+        [sys.executable, "-m", "py_compile",
+         "shared/tools/mds.py", "tests/test_mds.py"],
+        [sys.executable, "-m", "unittest", "discover", "-s", "tests", "-v"],
+        [sys.executable, "shared/tools/mds.py", "validate"],
+    ]
+    for command in commands:
+        print("\\n>>>", " ".join(command))
+        result = subprocess.run(command, cwd=ROOT)
+        if result.returncode != 0:
+            print("QA FAILED. Changes must not be committed.")
+            return result.returncode
+    print("\\nQA PASSED")
     return 0
 
 
@@ -300,6 +337,9 @@ def main():
     version.add_argument("--slug", required=True)
     version.add_argument("--version", required=True)
     version.set_defaults(func=set_project_version)
+
+    qa = sub.add_parser("qa", help="Run syntax checks, tests and project validation")
+    qa.set_defaults(func=run_qa)
 
     args = parser.parse_args()
     return args.func(args)
