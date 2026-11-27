@@ -116,5 +116,13 @@ class MDSCommandTests(unittest.TestCase):
                 shutil.rmtree(project)
 
 
+
+    def test_workflow_shows_next_unverified_stage(self):
+        result = self.run_cmd("workflow", "--slug", self.slug)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn("1. Static inspection", result.stdout)
+        self.assertIn("[TODO]", result.stdout)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

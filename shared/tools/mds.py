@@ -299,20 +299,109 @@ def set_project_version(args):
     return 0
 
 
-def run_qa(_args):
+
+def show_workflow(args):
+    file = find_project(args.slug)
+    if file is None:
+        print(f"ERROR: Project not found or ambiguous: {args.slug}")
+        return 1
+
+    data = json.loads(file.read_text(encoding="utf-8"))
+    verification = data.get("verification", {})
+    print(f"=== DEVELOPMENT WORKFLOW: {data.get('projectName', args.slug)} ===")
+    print(f"Type: {data.get('projectType')}")
+    print(f"Target Minecraft version: {data.get('targetMinecraftVersion') or 'NOT SET'}")
+    print(f"Loader: {data.get('modLoader') or 'Not specified'}")
+    print(f"Dependencies: {len(data.get('dependencies', []))}")
+
+    stages = [
+        ("staticInspection", "1. Static inspection",
+         "Inspect source files, project structure, metadata and dependencies."),
+        ("build", "2. Build",
+         "Run the project's actual build command and inspect the output artifact."),
+        ("runtimeTest", "3. Runtime test",
+         "Launch in the exact target Minecraft version and test required features.")
+    ]
+
+    print("\n--- Next actions ---")
+    for key, title, instruction in stages:
+        if verification.get(key) is True:
+            print(f"[DONE] {title}")
+        else:
+            print(f"[TODO] {title}: {instruction}")
+            break
+    else:
+        print("[READY] All verification flags are marked complete. Perform final review.")
+
+    if not data.get("targetMinecraftVersion"):
+        print("[BLOCKER] Set the target Minecraft version before version-specific implementation.")
+    if data.get("projectType") == "mods" and not data.get("modLoader"):
+        print("[BLOCKER] Confirm the mod loader before mod implementation.")
+
+    print("\nQA report: reports/QA_REPORT.md")
+    return 0
+
+
+def write_project_qa_report(file):
+    data = json.loads(file.read_text(encoding="utf-8"))
+    verification = data.get("verification", {})
+    complete = all(
+        verification.get(key) is True
+        for key in ("staticInspection", "build", "runtimeTest")
+    )
+
+    report = [
+        "# Quality Assurance Report",
+        "",
+        f"- Project: {data.get('projectName', file.parent.name)}",
+        f"- Target Minecraft version: {data.get('targetMinecraftVersion') or 'Not specified'}",
+        f"- Report generated: {datetime.now(timezone.utc).isoformat()}",
+        "",
+        "## Project verification",
+        "",
+        f"- Static inspection: {'Marked complete' if verification.get('staticInspection') else 'Not verified'}",
+        f"- Build: {'Marked complete' if verification.get('build') else 'Not verified'}",
+        f"- Runtime test: {'Marked complete' if verification.get('runtimeTest') else 'Not verified'}",
+        "",
+        "## Scope",
+        "",
+        "- MDS syntax checks, automated tests and project metadata validation were run.",
+        "- This report does not claim that the Minecraft project itself was built or tested in-game.",
+        "- Verification flags are not changed automatically.",
+        "",
+        f"- Final decision: {'Ready for final review' if complete else 'Pending project-level verification'}",
+        ""
+    ]
+
+    (file.parent / "reports" / "QA_REPORT.md").write_text(
+        "\n".join(report), encoding="utf-8"
+    )
+
+
+def run_qa(args):
     commands = [
         [sys.executable, "-m", "py_compile",
          "shared/tools/mds.py", "tests/test_mds.py"],
         [sys.executable, "-m", "unittest", "discover", "-s", "tests", "-v"],
         [sys.executable, "shared/tools/mds.py", "validate"],
     ]
+
     for command in commands:
-        print("\\n>>>", " ".join(command))
+        print("\n>>>", " ".join(command))
         result = subprocess.run(command, cwd=ROOT)
         if result.returncode != 0:
             print("QA FAILED. Changes must not be committed.")
             return result.returncode
-    print("\\nQA PASSED")
+
+    if args.slug:
+        file = find_project(args.slug)
+        if file is None:
+            print(f"ERROR: Project not found or ambiguous: {args.slug}")
+            return 1
+        write_project_qa_report(file)
+        print(f"Project QA report updated: {file.parent.relative_to(ROOT) / 'reports/QA_REPORT.md'}")
+
+    print("\nQA PASSED")
     return 0
 
 
@@ -351,7 +440,12 @@ def main():
     version.set_defaults(func=set_project_version)
 
     qa = sub.add_parser("qa", help="Run syntax checks, tests and project validation")
+    qa.add_argument("--slug", help="Also generate a QA report for one project")
     qa.set_defaults(func=run_qa)
+
+    workflow = sub.add_parser("workflow", help="Show the next development stage for a project")
+    workflow.add_argument("--slug", required=True)
+    workflow.set_defaults(func=show_workflow)
 
     args = parser.parse_args()
     return args.func(args)
