@@ -149,5 +149,40 @@ class MDSCommandTests(unittest.TestCase):
         self.assertIn("[PENDING]", result.stdout)
 
 
+
+    def test_packager_creates_valid_zip(self):
+        (self.project / "pack.mcmeta").write_text(
+            json.dumps({"pack": {"pack_format": 1, "description": "Test"}}),
+            encoding="utf-8"
+        )
+        function = self.project / "data/example/function"
+        function.mkdir(parents=True)
+        (function / "load.mcfunction").write_text("say test\n", encoding="utf-8")
+
+        result = subprocess.run(
+            [sys.executable, str(ROOT / "shared/tools/package_datapack.py"),
+             "--slug", self.slug],
+            cwd=ROOT, capture_output=True, text=True
+        )
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+        import zipfile
+        output = self.project / "dist" / f"{self.slug}.zip"
+        self.assertTrue(output.is_file())
+        with zipfile.ZipFile(output) as archive:
+            self.assertIsNone(archive.testzip())
+            self.assertIn("pack.mcmeta", archive.namelist())
+            self.assertTrue(any(n.startswith("data/") for n in archive.namelist()))
+
+    def test_packager_rejects_incomplete_datapack(self):
+        result = subprocess.run(
+            [sys.executable, str(ROOT / "shared/tools/package_datapack.py"),
+             "--slug", self.slug],
+            cwd=ROOT, capture_output=True, text=True
+        )
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("Packaging blocked", result.stderr)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

@@ -12,3 +12,6 @@ Thumbs.db
 __pycache__/
 **/__pycache__/
 *.py[cod]
+
+# Generated distribution archives
+**/dist/

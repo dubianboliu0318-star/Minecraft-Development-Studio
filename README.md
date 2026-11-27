@@ -34,3 +34,6 @@ Generate a project QA report:
 `python shared/tools/mds.py qa --slug <project-slug>`
 
 Framework QA does not mark Minecraft build or in-game verification complete.
+
+Package a validated datapack:
+`python shared/tools/package_datapack.py --slug <project-slug>`
