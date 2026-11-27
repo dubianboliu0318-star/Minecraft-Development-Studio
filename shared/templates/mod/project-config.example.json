@@ -1,0 +1,14 @@
+{
+  "projectName": "New Minecraft Mod",
+  "minecraftVersion": null,
+  "modLoader": null,
+  "loaderVersion": null,
+  "javaVersion": null,
+  "buildSystem": null,
+  "dependencies": [],
+  "verification": {
+    "build": false,
+    "gameLaunch": false,
+    "runtimeTest": false
+  }
+}

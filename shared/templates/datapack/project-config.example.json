@@ -1,0 +1,12 @@
+{
+  "projectName": "New Datapack",
+  "namespace": "example",
+  "targetMinecraftVersion": null,
+  "packMetadata": null,
+  "directoryConvention": null,
+  "verification": {
+    "jsonValidation": false,
+    "functionValidation": false,
+    "inGameTest": false
+  }
+}

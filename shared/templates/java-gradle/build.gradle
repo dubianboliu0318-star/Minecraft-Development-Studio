@@ -1,0 +1,27 @@
+plugins {
+    id 'application'
+}
+
+group = 'mds.template'
+version = '1.0.0'
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+application {
+    mainClass = 'mds.template.Main'
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+}
+
+tasks.register('verifyEnvironment') {
+    doLast {
+        println "MDS Java Gradle Template: OK"
+        println "Java toolchain: 21"
+    }
+}
