@@ -70,6 +70,7 @@ def create_project(args):
 
     for folder in ["specifications", "tasks", "reports", "assets"]:
         (path / folder).mkdir()
+    (path / "assets" / ".gitkeep").touch()
 
     (path / "specifications" / "PROJECT_SPEC.md").write_text(
         "# Project Specification\n\n"
